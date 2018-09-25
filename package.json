@@ -1,0 +1,23 @@
+{
+  "name": "youtube-search-list",
+  "version": "1.0.0",
+  "description": "A little script which can help you to find multiple Youtube videos based on a name.",
+  "main": "index.js",
+  "scripts": {
+    "test": "none"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Trekklog/youtube-search-list.git"
+  },
+  "author": "Trekklog",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Trekklog/youtube-search-list/issues"
+  },
+  "homepage": "https://github.com/Trekklog/youtube-search-list#readme",
+  "dependencies": {
+    "jsdom": "^12.0.0",
+    "node-fetch": "^2.2.0"
+  }
+}
