@@ -1,51 +1,82 @@
 const jsdom = require("jsdom")
-const { JSDOM } = jsdom;
+const {JSDOM} = jsdom
 
 const fetch = require('node-fetch')
 
-const yt_search = (title_yt_search, callback) => {
-    fetch(`https://www.youtube.com/results?search_query=${title_yt_search}`).then(res => res.text()).then(body => {
-        const dom = new JSDOM(body).window.document
+module.exports = {
+    search: function (title_yt_search, sort_by) {
+        let sort_by_options = {
+            relevance: 'CAASAhAB',
+            uploadtime: 'CAISAhAB',
+            viewcount: 'CAMSAhAB',
+            rating: 'rCAESAhAB'
+        }
 
-        let entire_list = []
+        const domain_search = 'https://www.youtube.com/'
 
-        dom.querySelectorAll('.yt-lockup').forEach((e, ind) => {
-            const s = new JSDOM(e.outerHTML).window.document
-            
-            const check_title = s.querySelector(".yt-lockup-title a[title]")
-            const check_duration = s.querySelector('.accessible-description').textContent.match(/\d+:\d+/g)
-            const check_total_views = s.querySelector(".yt-lockup-meta-info")
-            const check_realeased_date = s.querySelector(".yt-lockup-meta-info")
-            const check_description = s.querySelector('.yt-lockup-description')
-            const check_channel_link = s.querySelector('.yt-lockup-byline a')
 
-            const title = (check_title) ? check_title.textContent : 'Cannot get the title'
-            const video_cover = s.querySelector(".yt-thumb-simple img").src
-            const total_views = (check_total_views) ? check_total_views.childNodes[1].textContent : 'Cannot get the views.'
-            const released = (check_realeased_date ) ? check_realeased_date .childNodes[0].textContent: 'Connot get released date.'
-            const duration = (check_duration) ? check_duration.join() : 'This may be a playlist, it doest not have a duration.'
-            const description = (check_description) ? check_description.textContent.split('\n').map(x => x.trim()).join() : 'No description.'
-            const video_link = s.querySelector('.yt-lockup-title a').href
-            const channel_link = (check_channel_link) ? check_channel_link.href : 'Cannot find a channel.'
+        return new Promise((resolve, reject) => {
 
-            entire_list.push({id: ind, title, video_cover, total_views, released, duration, description, video_link, channel_link})
+            if (!sort_by) {
+                sort_by = 'relevance'
+            }
+
+            if (!sort_by_options[`${sort_by}`]) {
+                reject('You typed an invalid sort type!')
+            }
+
+            fetch(`${domain_search}results?sp=${sort_by_options[`${sort_by}`]}&search_query=${title_yt_search}`)
+                .then(res => res.text())
+                .then(body => {
+
+                    const dom = new JSDOM(body).window.document
+
+                    let entire_list = []
+
+                    let content = dom.querySelectorAll('.yt-lockup')
+                    if (content.length === 0) {
+                        resolve('No search result!')
+                    }
+
+
+                    content.forEach((e, ind) => {
+
+                        const s = new JSDOM(e.outerHTML).window.document
+
+                        if (!s.querySelector('.yt-badge-live')) {
+
+                            const check_description = s.querySelector('.yt-lockup-description')
+
+                            const title = s.querySelector(".yt-lockup-title a[title]").textContent
+                            const video_cover = s.querySelector(".yt-thumb-simple img").src
+                            const total_views = s.querySelector(".yt-lockup-meta-info").childNodes[1].textContent
+                            const released = s.querySelector(".yt-lockup-meta-info").childNodes[0].textContent
+                            const duration = s.querySelector('.accessible-description').textContent.match(/\d+:\d+/g).join()
+                            const description = (check_description) ? check_description.textContent.split('\n').map(x => x.trim()).join() : 'No description.'
+                            const video_link = s.querySelector('.yt-lockup-title a').href
+                            const channel_link = s.querySelector('.yt-lockup-byline a').href
+
+                            entire_list.push({
+                                id: ind,
+                                title,
+                                video_cover,
+                                total_views,
+                                released,
+                                duration,
+                                description,
+                                video_link,
+                                channel_link
+                            })
+                        }
+
+                    })
+
+                    resolve(entire_list)
+
+                }).catch(err => {
+                    reject(`Cannot get an response: ${err}`)
+                })
         })
-        
-        
-        return callback(entire_list)
-         
-    }).catch(err => {
-        console.log(err);
-        
-        callback(null, `Error: Cannot get an response: ${err}`)
-    })
-}
 
-module.exports.find = function(search_name, callback){
-    if (search_name.length < 4) {
-        callback(null, new Error('Searching a name require minumum 4 character.'))
     }
-    yt_search(search_name, (itms, err) => {
-        callback(itms, err)
-    })
 }
