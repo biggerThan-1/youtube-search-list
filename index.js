@@ -1,10 +1,8 @@
 const jsdom = require("jsdom")
 const {JSDOM} = jsdom
 
-const fetch = require('node-fetch')
-
 module.exports = {
-    search: function (title_yt_search, sort_by) {
+    search: function (title_yt_search, sort_by = 'relevance') {
         let sort_by_options = {
             relevance: 'CAASAhAB',
             uploadtime: 'CAISAhAB',
@@ -12,24 +10,21 @@ module.exports = {
             rating: 'rCAESAhAB'
         }
 
-        const domain_search = 'https://www.youtube.com/'
+        const domain_search = 'https://www.youtube.com'
 
 
         return new Promise((resolve, reject) => {
 
-            if (!sort_by) {
-                sort_by = 'relevance'
-            }
-
+            // check if 'sort_by' string can be found in 'sort_by_options' object
             if (!sort_by_options[`${sort_by}`]) {
                 reject('You typed an invalid sort type!')
             }
 
-            fetch(`${domain_search}results?sp=${sort_by_options[`${sort_by}`]}&search_query=${title_yt_search}`)
-                .then(res => res.text())
+            // can be done with fetch instead of .fromURL()
+            JSDOM.fromURL(`${domain_search}/results?sp=${sort_by_options[`${sort_by}`]}&search_query=${title_yt_search}`)
                 .then(body => {
 
-                    const dom = new JSDOM(body).window.document
+                    const dom = new JSDOM(body.serialize()).window.document
 
                     let entire_list = []
 
@@ -48,24 +43,24 @@ module.exports = {
                             const check_description = s.querySelector('.yt-lockup-description')
 
                             const title = s.querySelector(".yt-lockup-title a[title]").textContent
-                            const video_cover = s.querySelector(".yt-thumb-simple img").src
-                            const total_views = s.querySelector(".yt-lockup-meta-info").childNodes[1].textContent
+                            const cover = s.querySelector(".yt-thumb-simple img").dataset.thumb
+                            const views = s.querySelector(".yt-lockup-meta-info").childNodes[1].textContent
                             const released = s.querySelector(".yt-lockup-meta-info").childNodes[0].textContent
                             const duration = s.querySelector('.accessible-description').textContent.match(/\d+:\d+/g).join()
                             const description = (check_description) ? check_description.textContent.split('\n').map(x => x.trim()).join() : 'No description.'
-                            const video_link = s.querySelector('.yt-lockup-title a').href
-                            const channel_link = s.querySelector('.yt-lockup-byline a').href
+                            const link = `${domain_search}${s.querySelector('.yt-lockup-title a').href}`
+                            const channel = `${domain_search}${s.querySelector('.yt-lockup-byline a').href}`
 
                             entire_list.push({
                                 id: ind,
                                 title,
-                                video_cover,
-                                total_views,
+                                cover,
+                                views,
                                 released,
                                 duration,
                                 description,
-                                video_link,
-                                channel_link
+                                link,
+                                channel
                             })
                         }
 
@@ -77,6 +72,5 @@ module.exports = {
                     reject(`Cannot get an response: ${err}`)
                 })
         })
-
     }
 }
